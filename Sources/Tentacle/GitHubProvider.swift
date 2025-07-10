@@ -3,7 +3,7 @@ import Foundation
 import Moya
 
 enum GitHubEndpoints {
-    case getNotifications(query: NotificationQueryParameters)
+    case getNotifications(query: NotificationQueryParameters, ifModifiedSince: String? = nil)
     case getDeviceVerificationCode(clientId: String, scope: String)
     case getAccessToken(clientId: String, deviceCode: String, grantType: String)
 }
@@ -75,14 +75,24 @@ extension GitHubEndpoints: TargetType {
                 parameters: [
                     "client_id": clientId, "device_code": deviceCode, "grant_type": grantType,
                 ], encoding: URLEncoding.queryString)
-        case let .getNotifications(query):
+        case let .getNotifications(query, _):
             return .requestParameters(
                 parameters: query.toDictionary(), encoding: URLEncoding.queryString)
         }
     }
 
     var headers: [String: String]? {
-        return ["Content-type": "application/json", "Accept": "application/json"]
+        var headers =
+            ["Content-type": "application/json", "Accept": "application/json"]
+        switch self {
+        case let .getNotifications(_, ifModifiedSince):
+            if ifModifiedSince != nil {
+                headers["If-Modified-Since"] = ifModifiedSince
+            }
+            return headers
+        default:
+            return headers
+        }
     }
 }
 

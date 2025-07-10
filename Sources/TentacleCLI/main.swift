@@ -1,6 +1,14 @@
 import Foundation
 import Tentacle
 
+func onNotifications(notifications: [GitHubNotification], nextRequstIn: Int) {
+    print("Got Notifications! next request in: \(nextRequstIn)")
+}
+
+func onError(error: Error) {
+    print("Got Error")
+}
+
 Task {
     do {
         loadDotEnv()
@@ -18,9 +26,11 @@ Task {
         let gitHub = GitHubClient(clientId: clientId)
         gitHub.setPAT(token: gitHubPAT)
 
-        let notifications = try await gitHub.notifications.list()
+        let query = NotificationQueryParameters()
 
-        print(notifications[0])
+        await gitHub.notifications.poll(
+            query: query,
+            onNotifications: onNotifications, onError: onError)
 
     } catch {
         print("Error \(error)")

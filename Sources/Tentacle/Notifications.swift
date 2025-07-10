@@ -15,18 +15,66 @@ public class Notifications {
 
     public func list() async throws -> [GitHubNotification] {
         let query = NotificationQueryParameters()
-        let response = try await self.provider.request(.getNotifications(query: query))
+        let response = try await self.provider.request(
+            .getNotifications(query: query))
         return try response.map(NotificationsResponse.self, using: self.jsonDecoder)
+    }
+
+    public func poll(
+        query: NotificationQueryParameters,
+        onNotifications: @escaping ([GitHubNotification], Int) -> Void,
+        onError: @escaping (Error) -> Void
+    ) async {
+        var polling = true
+        var ifModifiedSince: String?
+
+        while polling {
+            do {
+                let response = try await self.provider.request(
+                    .getNotifications(query: query, ifModifiedSince: ifModifiedSince))
+
+                guard let httpResponse = response.response,
+                    let xPollInterval = httpResponse.headers["X-Poll-Interval"],
+                    let lastModified = httpResponse.headers["Last-Modified"],
+                    let pollIntervalSeconds = Int(xPollInterval)
+                else {
+                    polling = false
+                    break
+                }
+
+                let notifications = try response.map(
+                    NotificationsResponse.self, using: self.jsonDecoder)
+                onNotifications(notifications, pollIntervalSeconds)
+                ifModifiedSince = lastModified
+
+                try await sleep(seconds: pollIntervalSeconds)
+            } catch {
+                polling = false
+                onError(error)
+            }
+        }
     }
 }
 
-struct NotificationQueryParameters {
+public struct NotificationQueryParameters {
     var all: Bool = false
     var participating: Bool = false
     var since: Date?
     var before: Date?
     var page: Int = 1
     var perPage: Int = 50
+
+    public init(
+        all: Bool = false, participating: Bool = false, since: Date? = nil, before: Date? = nil,
+        page: Int = 1, perPage: Int = 50
+    ) {
+        self.all = all
+        self.participating = participating
+        self.since = since
+        self.before = before
+        self.page = page
+        self.perPage = perPage
+    }
 
     func toDictionary() -> [String: Any] {
         var dict: [String: Any] = [:]
