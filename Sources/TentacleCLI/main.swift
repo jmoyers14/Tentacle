@@ -26,7 +26,7 @@ Task {
         let gitHub = GitHubClient(clientId: clientId)
         gitHub.setPAT(token: gitHubPAT)
 
-        let query = NotificationQueryParameters()
+        let query = NotificationQueryParameters(all: true)
 
         await gitHub.notifications.poll(
             query: query,

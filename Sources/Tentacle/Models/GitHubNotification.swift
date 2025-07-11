@@ -55,15 +55,15 @@ public struct NotificationQueryParameters {
         self.perPage = perPage
     }
 
-    func toDictionary() -> [String: Any] {
+    public func toDictionary() -> [String: Any] {
         var dict: [String: Any] = [:]
 
         if all {
-            dict["all"] = true
+            dict["all"] = "true"
         }
 
         if participating {
-            dict["participating"] = true
+            dict["participating"] = "true"
         }
 
         if let since = since {
@@ -85,3 +85,4 @@ public struct NotificationQueryParameters {
         return dict
     }
 }
+
